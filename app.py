@@ -1,4 +1,4 @@
-﻿import base64
+import base64
 import hashlib
 import hmac
 import json
@@ -441,7 +441,7 @@ def checkout(slug):
     site = settings.current()
     methods = PAYMENT_METHODS
     if request.method == "POST":
-        method = request.form.get("method", "card")
+        method = request.form.get("method", "funpay")
         promo_code = request.form.get("promo", "").strip().upper()
         discount = 0
         if promo_code:
@@ -556,9 +556,6 @@ def order_confirm_payment(order_id):
 
 # способы оплаты на оформлении: (ключ, название, подпись, доступен)
 PAYMENT_METHODS = [
-    ("card", "Банковская карта", "МИР, Visa, Mastercard (РФ и СНГ)", True),
-    ("sbp", "СБП", "Оплата через СБП и QR-код без комиссии", True),
-    ("crypto", "Криптовалюта", "USDT, TON, BTC, TRX (моментально)", True),
     ("funpay", "FunPay", "Покупка ключа на бирже FunPay с гарантией", True),
 ]
 
