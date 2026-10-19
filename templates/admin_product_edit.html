@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name if product else 'Новый товар' }} — админка{% endblock %}
+
+{% block content %}
+<section class="wrap admin">
+  {% include "_admin_nav.html" %}
+
+  <form class="card admin-form" method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="card-head">
+      <h2>{{ product.name if product else 'Новый товар' }}</h2>
+      <a class="more" href="{{ url_for('admin_products') }}">← Все товары</a>
+    </div>
+
+    <div class="admin-grid">
+      <label class="field"><span>Раздел</span>
+        <select name="category">
+          {% for key, label, _icon in categories %}
+            <option value="{{ key }}" {{ 'selected' if form.category == key }}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="field"><span>Название</span>
+        <input name="name" value="{{ form.name }}" required maxlength="60" placeholder="30 дней">
+      </label>
+      <label class="field"><span>Адрес на сайте</span>
+        {% if product %}
+          <input value="/shop/{{ form.slug }}" disabled>
+        {% else %}
+          <input name="slug" value="{{ form.slug }}" required maxlength="40" pattern="[a-z0-9-]{2,40}" placeholder="month" autocomplete="off">
+        {% endif %}
+      </label>
+      <label class="field"><span>Цена, ₽</span>
+        <input type="number" name="price" value="{{ form.price }}" required min="1">
+      </label>
+      <label class="field"><span>Старая цена, ₽</span>
+        <input type="number" name="old_price" value="{{ form.old_price }}" min="1" placeholder="без скидки">
+      </label>
+      <label class="field"><span>Срок подписки, дней</span>
+        <input type="number" name="days" value="{{ form.days }}" min="0" placeholder="не подписка">
+        <small class="hint">0 — навсегда, пусто — не подписка</small>
+      </label>
+      <label class="field"><span>Иконка</span>
+        <div class="icon-input">
+          <img class="px" src="{{ tex(form.icon or 'item/diamond') }}" alt="" data-icon-preview>
+          <input name="icon" value="{{ form.icon }}" list="icons" required data-icon-input>
+        </div>
+        <datalist id="icons">{% for i in icons %}<option value="{{ i }}">{% endfor %}</datalist>
+      </label>
+      <label class="field"><span>Метка</span>
+        <input name="tag" value="{{ form.tag }}" maxlength="40" placeholder="Берут чаще всего">
+      </label>
+      <label class="field"><span>Порядок</span>
+        <input type="number" name="sort" value="{{ form.sort }}">
+        <small class="hint">Меньше — выше в списке</small>
+      </label>
+    </div>
+
+    <label class="field"><span>Ссылка на лот FunPay</span>
+      <input type="url" name="funpay_url" value="{{ form.funpay_url }}" maxlength="300" placeholder="https://funpay.com/lots/offer?id=...">
+      <small class="hint">Пусто — кнопка ведёт на общую ссылку FunPay из настроек</small>
+    </label>
+    <label class="field"><span>Описание</span>
+      <input name="blurb" value="{{ form.blurb }}" maxlength="200">
+    </label>
+    <label class="field"><span>Что входит — по одному пункту на строку</span>
+      <textarea name="perks" rows="5">{{ form.perks }}</textarea>
+    </label>
+
+    <button class="cta cta-light cta-sm" type="submit">{{ 'Сохранить' if product else 'Создать товар' }}</button>
+  </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+  const iconInput = document.querySelector("[data-icon-input]");
+  const iconPreview = document.querySelector("[data-icon-preview]");
+  const base = "{{ tex('x') }}".replace(/x\.png$/, "");
+  iconInput.addEventListener("input", () => {
+    if (/^(item|block)\/[a-z0-9_]{2,40}$/.test(iconInput.value)) iconPreview.src = base + iconInput.value + ".png";
+  });
+</script>
+{% endblock %}

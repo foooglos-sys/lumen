@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Промокоды — админка{% endblock %}
+
+{% block content %}
+<section class="wrap admin">
+  {% include "_admin_nav.html" %}
+
+  {% if not full %}
+    {% if can_create %}
+      <form class="card admin-form" method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <div class="card-head"><h2>Ваш промокод</h2></div>
+        <p class="muted">Придумайте код для своих зрителей — он даст скидку {{ yt_discount }}%. Создать можно один раз, поменять его сможет администрация.</p>
+        <label class="field field-short"><span>Код</span>
+          <input name="code" value="{{ form.code }}" required maxlength="32" placeholder="MYNICK" class="upper" autocomplete="off">
+        </label>
+        <button class="cta cta-light cta-sm" type="submit">Создать промокод</button>
+      </form>
+    {% endif %}
+  {% else %}
+  <form class="card admin-form" method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="card-head"><h2>Новый промокод</h2></div>
+    <div class="admin-grid">
+      <label class="field"><span>Код</span>
+        <input name="code" value="{{ form.code }}" required maxlength="32" placeholder="SUMMER25" class="upper" autocomplete="off">
+      </label>
+      <label class="field"><span>Скидка, %</span>
+        <input type="number" name="discount" value="{{ form.discount }}" required min="1" max="100" placeholder="10">
+      </label>
+      <label class="field"><span>Лимит использований</span>
+        <input type="number" name="max_uses" value="{{ form.max_uses }}" min="1" placeholder="без лимита">
+      </label>
+      <label class="field"><span>Действует до</span>
+        <input type="date" name="expires_at" value="{{ form.expires_at }}" min="{{ today }}">
+      </label>
+    </div>
+    <p class="hint">Использование засчитывается, когда заказ с промокодом оплачен. Пустой лимит и дата — без ограничений.</p>
+    <button class="cta cta-light cta-sm" type="submit">Создать</button>
+  </form>
+  {% endif %}
+
+  {% if promos %}
+    <div class="card admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>Код</th><th>Скидка</th><th>Использован</th><th>До</th><th>Статус</th>{% if full %}<th>Автор</th><th></th>{% endif %}</tr></thead>
+        <tbody>
+          {% for p in promos %}
+            {% set expired = p.expires_at and p.expires_at < today %}
+            {% set used_up = p.max_uses is not none and p.uses >= p.max_uses %}
+            <tr>
+              <td><code class="promo-code">{{ p.code }}</code></td>
+              <td>−{{ p.discount }}%</td>
+              <td>{{ p.uses }}{% if p.max_uses is not none %} из {{ p.max_uses }}{% endif %}</td>
+              <td class="nowrap">{{ p.expires_at or '—' }}</td>
+              <td>
+                {% if not p.active %}<span class="pill">выключен</span>
+                {% elif expired %}<span class="pill pill-cancelled">истёк</span>
+                {% elif used_up %}<span class="pill pill-cancelled">исчерпан</span>
+                {% else %}<span class="pill pill-paid">работает</span>{% endif %}
+              </td>
+              {% if full %}
+              <td><small class="muted">{{ p.author or '—' }}</small></td>
+              <td>
+                <div class="row-actions">
+                  <form method="post" action="{{ url_for('admin_promo_action', code=p.code, action='toggle') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                    <button class="chip" type="submit">{{ 'Выключить' if p.active else 'Включить' }}</button>
+                  </form>
+                  <form method="post" action="{{ url_for('admin_promo_action', code=p.code, action='delete') }}"
+                        data-confirm="Удалить промокод {{ p.code }}?"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                    <button class="chip chip-danger" type="submit">Удалить</button>
+                  </form>
+                </div>
+              </td>
+              {% endif %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted admin-empty">{{ 'Промокодов пока нет.' if full else 'У вас пока нет промокода.' }}</p>
+  {% endif %}
+</section>
+{% endblock %}

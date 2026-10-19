@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Тикеты{% endblock %}
+
+{% block content %}
+<section class="wrap page-head row">
+  <div>
+    <h1>Тикеты</h1>
+    <p class="muted">{% if can('tickets') %}Все обращения игроков.{% else %}Отвечаем обычно в течение пары часов, ночью — утром.{% endif %}</p>
+  </div>
+  <a class="btn" href="{{ url_for('ticket_new') }}">Новый тикет</a>
+</section>
+
+<div class="wrap">
+  <nav class="segmented small">
+    <a href="{{ url_for('tickets') }}" class="{{ 'on' if not status }}">Все</a>
+    {% for key, label in TICKET_STATUS.items() %}
+      <a href="{{ url_for('tickets', status=key) }}" class="{{ 'on' if status == key }}">{{ label }}</a>
+    {% endfor %}
+  </nav>
+</div>
+
+<section class="wrap">
+  {% with ok = get_flashed_messages(category_filter=['ok']) %}
+    {% for m in ok %}<p class="admin-ok ticket-flash">{{ m }}</p>{% endfor %}
+  {% endwith %}
+  {% if tickets %}
+    <ul class="ticket-list">
+      {% for t in tickets %}
+        <li>
+          <a href="{{ url_for('ticket_view', ticket_id=t.id) }}" class="ticket-row {{ 'is-closed' if t.status == 'closed' }}">
+            <span class="ticket-id">№{{ t.id }}</span>
+            <span class="ticket-main">
+              <b>{{ t.subject }}</b>
+              <small>{{ TICKET_CATEGORIES[t.category] }}{% if can('tickets') %} · {{ t.nick }}{% endif %} · {{ t.updated_at | date }}</small>
+            </span>
+            <span class="ticket-replies" title="Сообщений">{{ t.replies }}</span>
+            <span class="pill pill-{{ t.status }}">{{ TICKET_STATUS[t.status] }}</span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty">
+      <img class="px" src="{{ tex('item/writable_book') }}" alt="">
+      <h2>Пока пусто</h2>
+      <p class="muted">Клиент не запускается, не пришла подписка или нашли баг — напишите нам.</p>
+      <a class="btn" href="{{ url_for('ticket_new') }}">Создать тикет</a>
+    </div>
+  {% endif %}
+</section>
+{% endblock %}

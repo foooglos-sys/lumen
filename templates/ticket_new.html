@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Новый тикет{% endblock %}
+
+{% block content %}
+<section class="wrap narrow page-head">
+  <a class="back" href="{{ url_for('tickets') }}">← Тикеты</a>
+  <h1>Новый тикет</h1>
+</section>
+
+<section class="wrap narrow">
+  {% if next_at %}
+    <div class="notice ticket-limit">
+      <img class="px" src="{{ tex('item/clock_00') }}" alt="">
+      <p>Тикет можно создавать раз в сутки. Следующий — <b>{{ next_at }}</b>. Если вопрос по уже открытому тикету, напишите в <a href="{{ url_for('tickets') }}">нём</a>.</p>
+    </div>
+  {% endif %}
+  <form class="card form" method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <fieldset class="field-group" {{ 'disabled' if next_at }}>
+    <fieldset class="field">
+      <span>О чём</span>
+      <div class="choice-grid">
+        {% set icons = {'payment': 'item/emerald', 'launch': 'item/barrier', 'bug': 'item/spyglass', 'hwid': 'item/name_tag', 'other': 'item/book'} %}
+        {% for key, label in TICKET_CATEGORIES.items() %}
+          <label class="choice">
+            <input type="radio" name="category" value="{{ key }}" {{ 'checked' if form.category == key }}>
+            <span><img class="px" src="{{ tex(icons[key]) }}" alt="">{{ label }}</span>
+          </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <label class="field">
+      <span>Тема</span>
+      <input name="subject" value="{{ form.subject }}" required minlength="4" maxlength="120"
+             placeholder="Коротко: не запускается на 1.21.4">
+    </label>
+
+    <label class="field">
+      <span>Подробности</span>
+      <textarea name="body" rows="7" required minlength="10" maxlength="4000"
+                placeholder="Что случилось, версия игры, текст ошибки или номер заказа — всё, что поможет разобраться.">{{ form.body }}</textarea>
+    </label>
+
+    <button class="cta cta-light wide" type="submit">Отправить</button>
+    </fieldset>
+  </form>
+</section>
+{% endblock %}

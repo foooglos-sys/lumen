@@ -1,0 +1,17 @@
+<div class="admin-head">
+  <h1>Панель <span class="role-tag role-{{ role }}">{{ ROLES[role] }}</span></h1>
+  <nav class="segmented small" aria-label="Разделы панели">
+    {% if can('overview') %}<a href="{{ url_for('admin') }}" class="{{ 'on' if tab == 'overview' }}">Обзор</a>{% endif %}
+    {% if can('users') %}<a href="{{ url_for('admin_users') }}" class="{{ 'on' if tab == 'users' }}">Пользователи</a>{% endif %}
+    {% if can('orders') %}<a href="{{ url_for('admin_orders') }}" class="{{ 'on' if tab == 'orders' }}">Заказы</a>{% endif %}
+    {% if can('keys') %}<a href="{{ url_for('admin_keys') }}" class="{{ 'on' if tab == 'keys' }}">Ключи</a>{% endif %}
+    {% if can('promos') %}<a href="{{ url_for('admin_promos') }}" class="{{ 'on' if tab == 'promos' }}">Промокоды</a>{% endif %}
+    {% if can('products') %}<a href="{{ url_for('admin_products') }}" class="{{ 'on' if tab == 'products' }}">Товары</a>{% endif %}
+    {% if can('settings') %}<a href="{{ url_for('admin_settings') }}" class="{{ 'on' if tab == 'settings' }}">Настройки</a>{% endif %}
+    {% if can('logs') %}<a href="{{ url_for('admin_logs') }}" class="{{ 'on' if tab == 'logs' }}">Логи</a>{% endif %}
+    {% if can('tickets') %}<a href="{{ url_for('tickets') }}">Тикеты</a>{% endif %}
+  </nav>
+</div>
+{% with ok = get_flashed_messages(category_filter=['ok']) %}
+  {% for m in ok %}<p class="admin-ok">{{ m }}</p>{% endfor %}
+{% endwith %}

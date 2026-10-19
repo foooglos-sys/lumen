@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Логи — панель{% endblock %}
+
+{% block content %}
+<section class="wrap admin">
+  {% include "_admin_nav.html" %}
+
+  <div class="admin-bar">
+    <nav class="segmented small" aria-label="Раздел логов">
+      <a href="{{ url_for('admin_logs', q=q or None) }}" class="{{ 'on' if not cat }}">Все</a>
+      {% for key, label in categories.items() %}
+        <a href="{{ url_for('admin_logs', cat=key, q=q or None) }}" class="{{ 'on' if cat == key }}">{{ label }}</a>
+      {% endfor %}
+    </nav>
+    <form class="admin-search" method="get">
+      {% if cat %}<input type="hidden" name="cat" value="{{ cat }}">{% endif %}
+      <input name="q" value="{{ q }}" placeholder="Ник, ключ, IP…" autocomplete="off">
+      <button class="cta cta-light cta-sm" type="submit">Найти</button>
+    </form>
+  </div>
+
+  {% if rows %}
+    <div class="card admin-table-wrap">
+      <table class="admin-table logs-table">
+        <thead><tr><th>Когда</th><th>Кто</th><th>Действие</th><th>Подробности</th><th>IP</th></tr></thead>
+        <tbody>
+          {% for r in rows %}
+            {% set label, lcat = actions.get(r.action, (r.action, '')) %}
+            <tr>
+              <td class="nowrap"><small>{{ r.created_at | date }}</small></td>
+              <td>
+                {% if r.nick %}
+                  <div class="who">
+                    <img class="px head" src="https://mc-heads.net/avatar/{{ r.nick }}/48" alt="">
+                    <span><b>{{ r.nick }}</b></span>
+                  </div>
+                {% else %}<small class="muted">гость</small>{% endif %}
+              </td>
+              <td><span class="log-tag log-{{ lcat }}">{{ label }}</span></td>
+              <td class="log-details">{{ r.details }}</td>
+              <td class="nowrap"><small class="muted">{{ r.ip or '—' }}</small></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% if pages > 1 %}
+      <nav class="pager" aria-label="Страницы">
+        {% if page > 1 %}<a class="chip" href="{{ url_for('admin_logs', cat=cat or None, q=q or None, page=page - 1) }}">← Новее</a>{% endif %}
+        <span class="muted">Страница {{ page }} из {{ pages }} · всего {{ total }}</span>
+        {% if page < pages %}<a class="chip" href="{{ url_for('admin_logs', cat=cat or None, q=q or None, page=page + 1) }}">Старее →</a>{% endif %}
+      </nav>
+    {% endif %}
+  {% else %}
+    <p class="muted admin-empty">{{ 'Ничего не нашли.' if q or cat else 'Логов пока нет.' }}</p>
+  {% endif %}
+</section>
+{% endblock %}

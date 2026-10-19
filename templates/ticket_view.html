@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Тикет №{{ ticket.id }}{% endblock %}
+
+{% block content %}
+<section class="wrap narrow page-head">
+  <a class="back" href="{{ url_for('tickets') }}">← Тикеты</a>
+  <div class="ticket-title">
+    <h1>{{ ticket.subject }}</h1>
+    <span class="pill pill-{{ ticket.status }}">{{ TICKET_STATUS[ticket.status] }}</span>
+  </div>
+  <p class="muted">№{{ ticket.id }} · {{ TICKET_CATEGORIES[ticket.category] }} · открыт {{ ticket.created_at | date }}</p>
+</section>
+
+<section class="wrap narrow">
+  <ol class="thread">
+    {% for m in messages %}
+      <li class="msg {{ 'msg-staff' if m.is_staff }} {{ 'msg-mine' if m.user_id == g.user.id }}">
+        <img class="px msg-ava" src="https://mc-heads.net/avatar/{{ m.nick }}/40" alt="">
+        <div class="msg-body">
+          <div class="msg-meta">
+            <b>{{ m.nick }}</b>
+            {% if m.is_staff %}<span class="staff-tag">команда</span>{% endif %}
+            <time>{{ m.created_at | date }}</time>
+          </div>
+          <p>{{ m.body }}</p>
+        </div>
+      </li>
+    {% endfor %}
+  </ol>
+
+  {% if ticket.status != 'closed' %}
+    <form class="card form reply" method="post"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <label class="field">
+        <span>Ответ</span>
+        <textarea name="body" rows="4" required placeholder="Напишите сообщение…"></textarea>
+      </label>
+      <div class="reply-actions">
+        <button class="btn" type="submit">Отправить</button>
+        <button class="btn btn-ghost" type="submit" form="close-form">Закрыть тикет</button>
+      </div>
+    </form>
+    <form id="close-form" method="post" action="{{ url_for('ticket_close', ticket_id=ticket.id) }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}"></form>
+  {% else %}
+    <div class="notice">
+      <img class="px" src="{{ tex('item/book') }}" alt="">
+      <p>Тикет закрыт. Если вопрос остался — <a href="{{ url_for('ticket_new', category=ticket.category) }}">создайте новый</a>.</p>
+    </div>
+  {% endif %}
+
+  {% if can('tickets') %}
+    <form class="ticket-delete" method="post" action="{{ url_for('ticket_delete', ticket_id=ticket.id) }}"
+          data-confirm="Удалить тикет №{{ ticket.id }} вместе с перепиской? Это нельзя отменить."><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="chip chip-danger" type="submit">Удалить тикет</button>
+    </form>
+  {% endif %}
+</section>
+{% endblock %}

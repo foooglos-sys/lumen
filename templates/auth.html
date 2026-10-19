@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% set is_login = mode == 'login' %}
+{% block title %}{{ 'Вход' if is_login else 'Регистрация' }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+
+{% block content %}
+<div class="auth-bg" aria-hidden="true" style="background-image:url('{{ img('HERO_IMAGE') }}')"></div>
+
+<section class="auth">
+  <div class="auth-card">
+    <div class="auth-head">
+      <h1>{{ 'С возвращением' if is_login else 'Создать аккаунт' }}</h1>
+      <p>{{ 'Войдите, чтобы открыть кабинет, ключ и покупки.' if is_login else 'Аккаунт нужен, чтобы получить ключ и скачать клиент.' }}</p>
+    </div>
+
+    <nav class="auth-tabs {{ 'is-register' if not is_login }}" aria-label="Вход или регистрация">
+      <a href="{{ url_for('login', next=request.args.get('next')) }}" class="{{ 'on' if is_login }}">Вход</a>
+      <a href="{{ url_for('register', next=request.args.get('next')) }}" class="{{ 'on' if not is_login }}">Регистрация</a>
+      <span class="auth-tabs-ink" aria-hidden="true"></span>
+    </nav>
+
+    {% if error %}<p class="auth-error" role="alert">{{ error }}</p>{% endif %}
+
+    <form class="auth-form" method="post" novalidate><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <label class="auth-field">
+        <span>Логин</span>
+        <input name="nick" value="{{ form.nick }}" required minlength="3" maxlength="16" pattern="[A-Za-z0-9_]{3,16}"
+               autocomplete="username" spellcheck="false" autocapitalize="off" placeholder="Steve" {{ 'autofocus' if not form.nick }}>
+        {% if not is_login %}<small>Латиница, цифры и _, от 3 до 16 символов</small>{% endif %}
+      </label>
+
+      {% if not is_login %}
+        <label class="auth-field">
+          <span>Почта</span>
+          <input type="email" name="email" value="{{ form.email }}" required maxlength="254"
+                 autocomplete="email" spellcheck="false" autocapitalize="off" placeholder="you@example.com">
+        </label>
+      {% endif %}
+
+      <label class="auth-field">
+        <span>Пароль</span>
+        <div class="auth-pass">
+          <input type="password" name="password" required minlength="6"
+                 autocomplete="{{ 'current-password' if is_login else 'new-password' }}" {{ 'autofocus' if form.nick }}>
+          <button type="button" class="auth-eye" data-toggle-pass aria-label="Показать пароль">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        {% if not is_login %}<small>Минимум 6 символов</small>{% endif %}
+      </label>
+
+      {% if not is_login %}
+        <label class="auth-field">
+          <span>Повторите пароль</span>
+          <input type="password" name="password2" required minlength="6" autocomplete="new-password">
+        </label>
+      {% endif %}
+
+      <button class="auth-submit" type="submit">{{ 'Войти' if is_login else 'Зарегистрироваться' }}</button>
+    </form>
+
+    <p class="auth-switch">
+      {% if is_login %}
+        Нет аккаунта? <a href="{{ url_for('register', next=request.args.get('next')) }}">Зарегистрироваться</a>
+      {% else %}
+        Уже есть аккаунт? <a href="{{ url_for('login', next=request.args.get('next')) }}">Войти</a>
+      {% endif %}
+    </p>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+  document.querySelectorAll("[data-toggle-pass]").forEach((b) =>
+    b.addEventListener("click", () => {
+      const input = b.parentElement.querySelector("input");
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      b.classList.toggle("on", show);
+      b.setAttribute("aria-label", show ? "Скрыть пароль" : "Показать пароль");
+    }));
+</script>
+{% endblock %}

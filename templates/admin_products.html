@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Товары — админка{% endblock %}
+
+{% block content %}
+<section class="wrap admin">
+  {% include "_admin_nav.html" %}
+
+  <div class="admin-bar">
+    <p class="muted">Цены, названия и описания меняются сразу на сайте. Товар с заказами можно только скрыть.</p>
+    <a class="cta cta-light cta-sm" href="{{ url_for('admin_product_edit') }}">Новый товар</a>
+  </div>
+
+  <div class="card admin-table-wrap">
+    <table class="admin-table">
+      <thead><tr><th>Товар</th><th>Раздел</th><th>Цена</th><th>Срок</th><th>Заказов</th><th></th></tr></thead>
+      <tbody>
+        {% for p in products %}
+          <tr class="{{ 'is-hidden' if not p.active }}">
+            <td>
+              <a class="who" href="{{ url_for('admin_product_edit', product_id=p.id) }}">
+                <img class="px" src="{{ tex(p.icon) }}" alt="">
+                <span><b>{{ p.name }}</b><small>/shop/{{ p.slug }}{% if not p.active %} · скрыт{% endif %}</small></span>
+              </a>
+            </td>
+            <td>{{ 'Подписка' if p.category == 'subs' else 'Дополнительно' }}</td>
+            <td class="nowrap">{{ p.price | rub }}{% if p.old_price %} <s class="muted">{{ p.old_price | rub }}</s>{% endif %}</td>
+            <td class="nowrap">{% if p.days is none %}—{% elif p.days == 0 %}навсегда{% else %}{{ p.days | days }}{% endif %}</td>
+            <td>{{ p.orders_count }}</td>
+            <td>
+              <div class="row-actions">
+                <a class="chip" href="{{ url_for('admin_product_edit', product_id=p.id) }}">Изменить</a>
+                <form method="post" action="{{ url_for('admin_product_action', product_id=p.id, action='toggle') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                  <button class="chip" type="submit">{{ 'Скрыть' if p.active else 'Показать' }}</button>
+                </form>
+                {% if not p.orders_count %}
+                  <form method="post" action="{{ url_for('admin_product_action', product_id=p.id, action='delete') }}"
+                        data-confirm="Удалить «{{ p.name }}»?"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                    <button class="chip chip-danger" type="submit">Удалить</button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Заказ №{{ order.id }}{% endblock %}
+
+{% block content %}
+<section class="wrap narrow">
+  <div class="card receipt">
+    <div class="receipt-head">
+      <span class="slot slot-lg"><img class="px" src="{{ tex(order.icon) }}" alt=""></span>
+      <div>
+        <small class="muted">Заказ №{{ order.id }}</small>
+        <h1>{{ order.name }}</h1>
+      </div>
+      <span class="pill pill-{{ order.status }}">{{ ORDER_STATUS[order.status] }}</span>
+    </div>
+
+    <dl class="receipt-rows">
+      <div><dt>Аккаунт</dt><dd>{{ g.user.nick if order.user_id == g.user.id else '#' ~ order.user_id }}</dd></div>
+      {% if order.promo %}<div><dt>Промокод</dt><dd>{{ order.promo }}</dd></div>{% endif %}
+      <div><dt>Создан</dt><dd>{{ order.created_at | date }}</dd></div>
+      <div class="receipt-total"><dt>Сумма</dt><dd>{{ order.price | rub }}</dd></div>
+    </dl>
+
+    {% if order.status == 'pending' %}
+      <div class="notice" style="display: flex; gap: 12px; align-items: flex-start;">
+        <img class="px" src="{{ tex('item/clock_00') }}" alt="">
+        <div>
+          <b style="font-size: 1.05rem; color: #fff;">Ожидание оплаты заказа №{{ order.id }}</b>
+          <p style="margin-top: 4px;">Сумма к оплате: <b style="color: #c084fc;">{{ order.price | rub }}</b></p>
+          {% if cfg.SBP_PHONE %}
+            <div style="margin-top: 8px; padding: 10px; background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.25); border-radius: 8px;">
+              <div>Реквизиты для оплаты через СБП:</div>
+              <div style="margin-top: 4px;">Номер: <b style="color: #fff; font-size: 1.1rem; user-select: all;">{{ cfg.SBP_PHONE }}</b></div>
+              <div>Банк: <b>{{ cfg.SBP_BANK }}</b></div>
+              <div style="font-size: 0.85rem; color: #aaa; margin-top: 4px;">В сообщении к переводу укажите ник: <b>{{ g.user.nick }}</b></div>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      <form method="post" action="{{ url_for('order_confirm_payment', order_id=order.id) }}" style="margin-top: 1rem;">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <button type="submit" class="cta cta-light wide">Я оплатил / Проверить оплату</button>
+      </form>
+    {% elif order.status == 'paid' %}
+      <div class="notice notice-ok">
+        <img class="px" src="{{ tex('item/emerald') }}" alt="">
+        <p>Готово. {% if order.days is not none %}Ключ и кнопка скачивания — в <a href="{{ url_for('profile') }}">профиле</a>.{% else %}Покупка уже применена к аккаунту.{% endif %}</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <p class="center muted small-gap">
+    Проблема с заказом? <a href="{{ url_for('ticket_new', category='payment') }}">Напишите в поддержку</a>, укажите №{{ order.id }}.
+  </p>
+</section>
+{% endblock %}

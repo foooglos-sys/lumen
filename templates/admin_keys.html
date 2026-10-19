@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Ключи — админка{% endblock %}
+
+{% block content %}
+<section class="wrap admin">
+  {% include "_admin_nav.html" %}
+
+  <form class="card admin-form" method="post" data-keygen><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="card-head"><h2>Сгенерировать папку ключей</h2></div>
+    <div class="admin-grid">
+      <label class="field"><span>Срок подписки</span>
+        <div class="grant grant-lg">
+          <input type="number" name="amount" value="30" min="1" max="100000" aria-label="Количество">
+          <select name="unit" aria-label="Единица">
+            <option value="days">дней</option>
+            <option value="weeks">недель</option>
+            <option value="months">месяцев</option>
+            <option value="years">лет</option>
+            <option value="forever">навсегда</option>
+          </select>
+        </div>
+      </label>
+      <label class="field"><span>Сколько ключей</span>
+        <input type="number" name="count" value="100" min="1" max="100" required>
+      </label>
+      <label class="field"><span>Название папки</span>
+        <input name="name" maxlength="60" placeholder="само, например «30 дней · 27.09»">
+      </label>
+    </div>
+    <div class="keygen-presets">
+      <span class="hint">Быстро:</span>
+      <button type="button" class="chip" data-preset="30,days">30 дней</button>
+      <button type="button" class="chip" data-preset="1,years">1 год</button>
+      <button type="button" class="chip" data-preset="0,forever">Навсегда</button>
+    </div>
+    <p class="hint">В одной папке до 100 ключей одного срока. Активированный ключ сразу пропадает из папки.</p>
+    <button class="cta cta-light cta-sm" type="submit">Сгенерировать</button>
+  </form>
+
+  {% if folders %}
+    <div class="folders">
+      {% for f in folders %}
+        <a class="folder card {{ 'is-empty' if not f.left }}" href="{{ url_for('admin_key_folder', folder_id=f.id) }}">
+          <svg class="folder-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          <span class="folder-name">{{ f.name }}</span>
+          <span class="folder-period">{{ period_label(f.days) }}</span>
+          <span class="folder-count"><b>{{ f.left }}</b> / {{ f.created }}</span>
+          <span class="folder-bar"><i style="width: {{ (f.left / f.created * 100) | round }}%"></i></span>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="muted admin-empty">Папок пока нет — сгенерируйте первую.</p>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-head"><h2>Последние активации</h2></div>
+    {% if log %}
+      <ul class="admin-list">
+        {% for a in log %}
+          <li>
+            <img class="px head" src="https://mc-heads.net/avatar/{{ a.nick }}/48" alt="">
+            <span class="grow"><b>{{ a.nick }} · {{ period_label(a.days) }}</b><small>{{ a.code }} · {{ a.folder_name }}</small></span>
+            <small class="muted nowrap">{{ a.activated_at | date }}</small>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}<p class="muted">Ключей ещё не активировали.</p>{% endif %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+  (() => {
+    const form = document.querySelector("[data-keygen]");
+    const amount = form.querySelector("[name=amount]"), unit = form.querySelector("[name=unit]");
+    const sync = () => { amount.disabled = unit.value === "forever"; };
+    unit.addEventListener("change", sync);
+    form.querySelectorAll("[data-preset]").forEach((b) => b.addEventListener("click", () => {
+      const [n, u] = b.dataset.preset.split(",");
+      unit.value = u;
+      if (u !== "forever") amount.value = n;
+      sync();
+    }));
+  })();
+</script>
+{% endblock %}

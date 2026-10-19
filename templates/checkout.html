@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+<section class="wrap page-head">
+  <a class="back" href="{{ url_for('shop', cat=product.category) }}">← Покупка</a>
+  <h1>Оформление</h1>
+</section>
+
+<section class="wrap checkout">
+  <aside class="card summary">
+    <div class="summary-top">
+      <span class="slot slot-lg"><img class="px" src="{{ tex(product.icon) }}" alt=""></span>
+      <div>
+        <h2>{{ product.name }}</h2>
+        <p class="muted">{{ product.blurb }}</p>
+      </div>
+    </div>
+    {% if product.perks %}
+      <ul class="perks">
+        {% for perk in product.perks.split('\n') %}<li>{{ perk }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    {% if product.days is not none and sub.active and not sub.forever %}
+      <p class="notice small">
+        <img class="px" src="{{ tex('item/clock_00') }}" alt="">
+        <span>Сейчас у вас подписка до {{ sub.until }}. {% if product.days %}Новые {{ product.days | days }} добавятся сверху.{% else %}Она станет бессрочной.{% endif %}</span>
+      </p>
+    {% endif %}
+  </aside>
+
+  <form class="card form" method="post" data-checkout><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <div class="field">
+      <span>Аккаунт</span>
+      <div class="account-row">
+        <img class="px" src="https://mc-heads.net/avatar/{{ g.user.nick }}/40" alt="">
+        <b>{{ g.user.nick }}</b>
+        <small class="muted">покупка привяжется к нему</small>
+      </div>
+    </div>
+
+    <fieldset class="field">
+      <span>Способ оплаты</span>
+      <div class="pay-methods">
+        {% for key, title, note, available in methods %}
+          <label class="pay {{ 'is-soon' if not available }}">
+            <input type="radio" name="method" value="{{ key }}" {{ 'checked' if loop.first }} {{ 'disabled' if not available }}>
+            <span class="pay-body">
+              <span class="pay-logo pay-{{ key }}">
+                {% if key == 'funpay' %}
+                  <img src="{{ url_for('static', filename='img/funpay.svg') }}" alt="FunPay">
+                {% elif key == 'card' %}
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+                  <b>Карта</b>
+                {% elif key == 'sbp' %}
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/></svg>
+                  <b>СБП</b>
+                {% elif key == 'crypto' %}
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M9.5 8h4a2 2 0 0 1 0 4h-4m0 0h4.5a2 2 0 0 1 0 4h-4.5"/><path d="M11 6v2m2-2v2m-2 8v2m2-2v2"/></svg>
+                  <b>Крипта</b>
+                {% else %}
+                  <b>{{ title }}</b>
+                {% endif %}
+              </span>
+              <small>{{ note }}</small>
+              {% if not available %}<em class="soon">скоро</em>{% endif %}
+            </span>
+          </label>
+        {% endfor %}
+      </div>
+    </fieldset>
+
+    <div class="field" style="margin-top: 1rem;">
+      <span>Промокод (если есть)</span>
+      <input type="text" name="promo" placeholder="Введите промокод..." style="text-transform: uppercase;">
+    </div>
+
+    <div class="pay-note" data-for="card">
+      <img class="px" src="{{ tex('item/gold_ingot') }}" alt="">
+      <p>Оплата банковской картой любого банка (МИР, Visa, Mastercard). Подписка активируется <b>моментально</b> после успешной оплаты.</p>
+    </div>
+
+    <div class="pay-note" data-for="sbp">
+      <img class="px" src="{{ tex('item/emerald') }}" alt="">
+      <p>Быстрая оплата по СБП (Система быстрых платежей) без комиссии. Моментальное зачисление на аккаунт.</p>
+    </div>
+
+    <div class="pay-note" data-for="crypto">
+      <img class="px" src="{{ tex('item/diamond') }}" alt="">
+      <p>Оплата криптовалютой (USDT, TON, Bitcoin, Tron). Автоматическое подтверждение сети.</p>
+    </div>
+
+    <div class="pay-note" data-for="funpay">
+      <img class="px" src="{{ tex('item/name_tag') }}" alt="">
+      <p>На FunPay вы получите ключ активации. Введите его в <a href="{{ url_for('profile') }}">кабинете</a> — подписка включится сразу.</p>
+    </div>
+
+    <div class="total">
+      <span>К оплате</span>
+      <b data-total>{{ product.price | rub }}</b>
+    </div>
+    <button class="cta cta-light wide" type="submit" data-submit>Перейти на FunPay</button>
+    <p class="hint center">Нажимая кнопку, вы соглашаетесь с правилами использования.</p>
+  </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+  // показываем только то, что относится к выбранному способу оплаты
+  (() => {
+    const form = document.querySelector("[data-checkout]");
+    const submit = form.querySelector("[data-submit]");
+    const labels = {
+      card: "Оплатить картой",
+      sbp: "Оплатить по СБП",
+      crypto: "Оплатить криптовалютой",
+      funpay: "Перейти на FunPay"
+    };
+    const sync = () => {
+      const method = form.querySelector("[name=method]:checked")?.value;
+      form.querySelectorAll("[data-for]").forEach((el) => { el.hidden = el.dataset.for !== method; });
+      submit.textContent = labels[method] || "Оплатить";
+    };
+    form.addEventListener("change", sync);
+    sync();
+  })();
+</script>
+{% endblock %}

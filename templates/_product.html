@@ -1,0 +1,18 @@
+<article class="product {{ 'has-tag' if p.tag }}">
+  {% if p.tag %}<span class="product-tag">{{ p.tag }}</span>{% endif %}
+  <span class="slot slot-lg"><img class="px" src="{{ tex(p.icon) }}" alt=""></span>
+  <h2>{{ p.name }}</h2>
+  <p class="muted">{{ p.blurb }}</p>
+  {% if p.perks %}
+    <ul class="perks">
+      {% for perk in p.perks.split('\n') %}<li>{{ perk }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+  <div class="product-foot">
+    <div class="price">
+      {{ p.price | rub }}
+      {% if p.old_price %}<s>{{ p.old_price | rub }}</s>{% endif %}
+    </div>
+    <a class="btn" href="{{ url_for('checkout', slug=p.slug) }}">Купить</a>
+  </div>
+</article>

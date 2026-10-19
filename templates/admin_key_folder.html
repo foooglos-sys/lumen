@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}{{ folder.name }} — ключи{% endblock %}
+
+{% block content %}
+<section class="wrap admin">
+  {% include "_admin_nav.html" %}
+
+  <div class="card">
+    <div class="card-head">
+      <div>
+        <h2>{{ folder.name }}</h2>
+        <p class="muted small">{{ period | capitalize }} · осталось {{ keys | length }} из {{ folder.created }} · создана {{ folder.created_at | date }}</p>
+      </div>
+      <a class="more" href="{{ url_for('admin_keys') }}">← Все папки</a>
+    </div>
+
+    {% if keys %}
+      <div class="folder-actions">
+        <button type="button" class="cta cta-light cta-sm" data-copy="{{ keys | join('\n') }}">Скопировать все</button>
+        <a class="cta cta-ghost cta-sm" href="{{ url_for('admin_key_folder_txt', folder_id=folder.id) }}">Скачать .txt</a>
+        <span class="hint">По одному ключу на строку — так FunPay принимает товары для автовыдачи.</span>
+      </div>
+      <ol class="key-list">
+        {% for k in keys %}
+          <li>
+            <code>{{ k }}</code>
+            <button type="button" class="chip" data-copy="{{ k }}">Копировать</button>
+            <form method="post" action="{{ url_for('admin_key_remove', folder_id=folder.id) }}"
+                  data-confirm="Удалить ключ {{ k }}? Он перестанет работать."><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+              <input type="hidden" name="code" value="{{ k }}">
+              <button class="chip chip-danger" type="submit">Удалить</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted">Все ключи из этой папки уже активированы.</p>
+    {% endif %}
+
+    <form class="folder-delete" method="post" action="{{ url_for('admin_key_folder_delete', folder_id=folder.id) }}"
+          data-confirm="Удалить папку «{{ folder.name }}»? Оставшиеся ключи перестанут работать."><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="chip chip-danger" type="submit">Удалить папку</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

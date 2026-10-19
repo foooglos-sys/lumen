@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Настройки — админка{% endblock %}
+
+{% block content %}
+<section class="wrap admin">
+  {% include "_admin_nav.html" %}
+
+  <form class="admin-settings" method="post" enctype="multipart/form-data"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    {% for title, keys in sections %}
+      <fieldset class="card admin-form">
+        <legend class="card-head"><h2>{{ title }}</h2></legend>
+
+        {% for key in keys %}
+          {% set label, kind, hint = fields[key] %}
+          {% set value = site[key] %}
+
+          {% if kind in ('str', 'url') %}
+            <label class="field"><span>{{ label }}</span>
+              <input name="{{ key }}" value="{{ value }}" {{ 'type=url' if kind == 'url' }} maxlength="500"
+                     {{ 'required' if key == 'CLIENT_NAME' }} placeholder="{{ 'https://' if kind == 'url' }}">
+              {% if hint %}<small class="hint">{{ hint }}</small>{% endif %}
+            </label>
+
+          {% elif kind == 'text' %}
+            <label class="field"><span>{{ label }}</span>
+              <textarea name="{{ key }}" rows="3" maxlength="500">{{ value }}</textarea>
+              {% if hint %}<small class="hint">{{ hint }}</small>{% endif %}
+            </label>
+
+          {% elif kind == 'int' %}
+            <label class="field field-short"><span>{{ label }}</span>
+              <input type="number" name="{{ key }}" value="{{ value }}" min="0">
+            </label>
+
+          {% elif kind == 'bool' %}
+            <label class="switch">
+              <input type="hidden" name="{{ key }}" value="0">
+              <input type="checkbox" name="{{ key }}" value="1" {{ 'checked' if value }}>
+              <span class="switch-ui" aria-hidden="true"></span>
+              <span><b>{{ label }}</b>{% if hint %}<small class="hint">{{ hint }}</small>{% endif %}</span>
+            </label>
+
+          {% elif kind == 'status' %}
+            <label class="field field-short"><span>{{ label }}</span>
+              <select name="{{ key }}">
+                {% for k, v in statuses.items() %}<option value="{{ k }}" {{ 'selected' if value == k }}>{{ v }}</option>{% endfor %}
+              </select>
+            </label>
+
+          {% elif kind == 'image' %}
+            <div class="field"><span>{{ label }}</span>
+              <div class="image-field">
+                <img src="{{ img(key) }}" alt="" data-image-preview>
+                <div>
+                  <input type="file" name="{{ key }}" accept="image/jpeg,image/png,image/webp" data-image-input>
+                  {% if value %}
+                    <label class="inline-check"><input type="checkbox" name="{{ key }}_reset" value="1"> Вернуть стандартную картинку</label>
+                  {% endif %}
+                  {% if hint %}<small class="hint">{{ hint }}</small>{% endif %}
+                </div>
+              </div>
+            </div>
+
+          {% elif kind == 'advantages' %}
+            <div class="repeat" data-repeat>
+              {% for item in value %}
+                <div class="repeat-row">
+                  <div class="icon-input">
+                    <img class="px" src="{{ tex(item.icon) }}" alt="" data-icon-preview>
+                    <input name="adv_icon" value="{{ item.icon }}" list="icons" aria-label="Иконка" data-icon-input>
+                  </div>
+                  <input name="adv_title" value="{{ item.title }}" placeholder="Заголовок" maxlength="80">
+                  <textarea name="adv_text" rows="2" placeholder="Текст" maxlength="300">{{ item.text }}</textarea>
+                  <button type="button" class="chip chip-danger" data-remove>Убрать</button>
+                </div>
+              {% endfor %}
+              <template>
+                <div class="repeat-row">
+                  <div class="icon-input">
+                    <img class="px" src="{{ tex('item/diamond') }}" alt="" data-icon-preview>
+                    <input name="adv_icon" value="item/diamond" list="icons" aria-label="Иконка" data-icon-input>
+                  </div>
+                  <input name="adv_title" placeholder="Заголовок" maxlength="80">
+                  <textarea name="adv_text" rows="2" placeholder="Текст" maxlength="300"></textarea>
+                  <button type="button" class="chip chip-danger" data-remove>Убрать</button>
+                </div>
+              </template>
+              <button type="button" class="chip" data-add>+ Добавить карточку</button>
+            </div>
+            <datalist id="icons">{% for i in icons %}<option value="{{ i }}">{% endfor %}</datalist>
+
+          {% elif kind == 'faq' %}
+            <div class="repeat" data-repeat>
+              {% for item in value %}
+                <div class="repeat-row repeat-faq">
+                  <input name="faq_q" value="{{ item.q }}" placeholder="Вопрос" maxlength="200">
+                  <textarea name="faq_a" rows="2" placeholder="Ответ" maxlength="1000">{{ item.a }}</textarea>
+                  <button type="button" class="chip chip-danger" data-remove>Убрать</button>
+                </div>
+              {% endfor %}
+              <template>
+                <div class="repeat-row repeat-faq">
+                  <input name="faq_q" placeholder="Вопрос" maxlength="200">
+                  <textarea name="faq_a" rows="2" placeholder="Ответ" maxlength="1000"></textarea>
+                  <button type="button" class="chip chip-danger" data-remove>Убрать</button>
+                </div>
+              </template>
+              <button type="button" class="chip" data-add>+ Добавить вопрос</button>
+            </div>
+          {% endif %}
+        {% endfor %}
+      </fieldset>
+    {% endfor %}
+
+    <div class="admin-save">
+      <button class="cta cta-light" type="submit">Сохранить настройки</button>
+      <a class="more" href="{{ url_for('index') }}" target="_blank" rel="noopener">Открыть сайт ↗</a>
+    </div>
+  </form>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+  // добавить / убрать строку в списках преимуществ и вопросов
+  document.querySelectorAll("[data-repeat]").forEach((box) => {
+    const tpl = box.querySelector("template");
+    box.querySelector("[data-add]").addEventListener("click", (e) => {
+      e.currentTarget.before(tpl.content.cloneNode(true));
+    });
+    box.addEventListener("click", (e) => {
+      if (e.target.matches("[data-remove]")) e.target.closest(".repeat-row").remove();
+    });
+  });
+
+  // живое превью иконок
+  const texBase = "{{ tex('x') }}".replace(/x\.png$/, "");
+  document.addEventListener("input", (e) => {
+    if (!e.target.matches("[data-icon-input]")) return;
+    const img = e.target.parentElement.querySelector("[data-icon-preview]");
+    if (/^(item|block)\/[a-z0-9_]{2,40}$/.test(e.target.value)) img.src = texBase + e.target.value + ".png";
+  });
+
+  // превью нового фона до сохранения
+  document.querySelectorAll("[data-image-input]").forEach((input) => {
+    input.addEventListener("change", () => {
+      const file = input.files[0];
+      if (file) input.closest(".image-field").querySelector("[data-image-preview]").src = URL.createObjectURL(file);
+    });
+  });
+</script>
+{% endblock %}

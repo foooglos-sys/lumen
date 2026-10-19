@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}Админка{% endblock %}
+
+{% block content %}
+<section class="wrap admin">
+  {% include "_admin_nav.html" %}
+
+  {% if tab == 'overview' %}
+    <div class="admin-hero" style="background-image:url('{{ img('ADMIN_IMAGE') }}')">
+      <img class="px" src="https://mc-heads.net/avatar/{{ g.user.nick }}/96" alt="">
+      <div>
+        <h2>Привет, {{ g.user.nick }}</h2>
+        <p>{{ stats.activations }} активаций ключей · {{ stats.active }} активных подписок · {{ stats.tickets }} открытых тикетов</p>
+      </div>
+      <a class="cta cta-light cta-sm" href="{{ url_for('admin_keys') }}">Сгенерировать ключи</a>
+    </div>
+
+    <div class="admin-cols">
+      <div class="card">
+        <div class="card-head"><h2>Ключи на складе</h2><a class="more" href="{{ url_for('admin_keys') }}">Папки →</a></div>
+        {% if stock %}
+          <ul class="stock">
+            {% for s in stock %}
+              <li class="{{ 'is-low' if s.left < 10 }}"><span>{{ s.label | capitalize }}</span><b>{{ s.left }}</b></li>
+            {% endfor %}
+          </ul>
+          <p class="hint">Красным — меньше 10 ключей, пора генерировать новую папку.</p>
+        {% else %}<p class="muted">Ключей нет — сгенерируйте первую папку.</p>{% endif %}
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>14 дней</h2>
+          <span class="chart-legend"><i class="lg-users"></i>регистрации <i class="lg-acts"></i>активации</span>
+        </div>
+        <div class="chart" role="img" aria-label="Регистрации и активации ключей за 14 дней">
+          {% for d in chart %}
+            <div class="chart-col" title="{{ d.day }}: {{ d.users }} регистраций, {{ d.acts }} активаций">
+              <div class="chart-bars">
+                <i class="bar-users" style="height: {{ (d.users / peak * 100) | round }}%"></i>
+                <i class="bar-acts" style="height: {{ (d.acts / peak * 100) | round }}%"></i>
+              </div>
+              <small>{{ d.day }}</small>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-stats">
+      <div class="stat"><small>Пользователей</small><b>{{ stats.users }}</b></div>
+      <div class="stat"><small>Активных подписок</small><b>{{ stats.active }}</b></div>
+      <div class="stat"><small>Выручка</small><b>{{ stats.revenue | rub }}</b></div>
+      <div class="stat"><small>Оплаченных заказов</small><b>{{ stats.paid }}</b></div>
+      <a class="stat" href="{{ url_for('admin_orders', status='pending') }}"><small>Ждут оплаты</small><b>{{ stats.pending }}</b></a>
+      <a class="stat" href="{{ url_for('tickets', status='open') }}"><small>Открытых тикетов</small><b>{{ stats.tickets }}</b></a>
+    </div>
+
+    <div class="admin-cols">
+      <div class="card">
+        <div class="card-head"><h2>Последние заказы</h2><a class="more" href="{{ url_for('admin_orders') }}">Все →</a></div>
+        {% if orders %}
+          <ul class="admin-list">
+            {% for o in orders %}
+              <li>
+                <img class="px" src="{{ tex(o.icon) }}" alt="">
+                <span class="grow"><b>{{ o.name }}</b><small>№{{ o.id }} · {{ o.nick }} · {{ o.created_at | date }}</small></span>
+                <span class="nowrap">{{ o.price | rub }}</span>
+                <span class="pill pill-{{ o.status }}">{{ ORDER_STATUS[o.status] }}</span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}<p class="muted">Заказов пока нет.</p>{% endif %}
+      </div>
+      <div class="card">
+        <div class="card-head"><h2>Новые пользователи</h2><a class="more" href="{{ url_for('admin_users') }}">Все →</a></div>
+        {% if users %}
+          <ul class="admin-list">
+            {% for u in users %}
+              <li>
+                <img class="px head" src="https://mc-heads.net/avatar/{{ u.nick }}/48" alt="">
+                <span class="grow"><b>{{ u.nick }}</b><small>{{ u.email or 'без почты' }}</small></span>
+                <small class="muted nowrap">{{ u.created_at | date }}</small>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}<p class="muted">Пользователей пока нет.</p>{% endif %}
+      </div>
+    </div>
+
+  {% elif tab == 'users' %}
+    <form class="admin-search" method="get">
+      <input name="q" value="{{ q }}" placeholder="Ник, почта или ключ" autocomplete="off">
+      <button class="cta cta-light cta-sm" type="submit">Найти</button>
+    </form>
+
+    {% if users %}
+      <div class="card admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Игрок</th><th>Роль</th><th>Подписка</th><th>HWID</th><th>Выдать</th><th></th></tr></thead>
+          <tbody>
+            {% for u in users %}
+              {% set s = sub_info(u) %}
+              <tr>
+                <td>
+                  <div class="who">
+                    <img class="px head" src="https://mc-heads.net/avatar/{{ u.nick }}/48" alt="">
+                    <span><b>{{ u.nick }}</b><small>{{ u.email or 'без почты' }}</small></span>
+                  </div>
+                </td>
+                <td>
+                  {% set r = role_of(u) %}
+                  {% if can('roles') and not is_root_owner(u) and u.id != g.user.id %}
+                    <form method="post" action="{{ url_for('admin_role', user_id=u.id, q=q) }}" class="role-form"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                      <select name="role" aria-label="Роль {{ u.nick }}" data-autosubmit>
+                        <option value="" {{ 'selected' if not r }}>Игрок</option>
+                        <option value="youtuber" {{ 'selected' if r == 'youtuber' }}>Ютубер</option>
+                        <option value="admin" {{ 'selected' if r == 'admin' }}>Админ</option>
+                        <option value="owner" {{ 'selected' if r == 'owner' }}>Владелец</option>
+                      </select>
+                    </form>
+                  {% elif r %}
+                    <span class="role-tag role-{{ r }}">{{ ROLES[r] }}</span>
+                  {% else %}<small class="muted">игрок</small>{% endif %}
+                </td>
+                <td>
+                  {% if s.active %}
+                    <span class="pill pill-paid">{{ 'навсегда' if s.forever else 'до ' ~ s.until }}</span>
+                  {% else %}
+                    <span class="pill">{{ 'истекла ' ~ s.until if s.expired else 'нет' }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if u.hwid %}
+                    <form method="post" action="{{ url_for('admin_hwid', user_id=u.id, q=q) }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                      <button class="chip" type="submit" title="{{ u.hwid }}">Сбросить</button>
+                    </form>
+                  {% else %}<small class="muted">—</small>{% endif %}
+                  {% if u.id != g.user.id and role_of(u) not in ('admin', 'owner') %}
+                    <form method="post" action="{{ url_for('admin_client_ban', user_id=u.id, q=q) }}"
+                          data-confirm="{{ 'Снять блокировку' if u.client_blocked else 'Заблокировать аккаунт и его текущий ПК' }}: {{ u.nick }}?">
+                      <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                      <input type="hidden" name="action" value="{{ 'unban' if u.client_blocked else 'ban' }}">
+                      <button class="chip chip-danger" type="submit">{{ 'Убрать из ЧСП' if u.client_blocked else 'Добавить в ЧСП' }}</button>
+                    </form>
+                  {% endif %}
+                </td>
+                <td>
+                  <form class="grant" method="post" action="{{ url_for('admin_grant', user_id=u.id, q=q) }}" data-grant><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                    <input type="number" name="amount" value="30" min="1" max="100000" aria-label="Количество">
+                    <select name="unit" aria-label="Единица">
+                      <option value="days">дней</option>
+                      <option value="weeks">недель</option>
+                      <option value="months">месяцев</option>
+                      <option value="years">лет</option>
+                      <option value="forever">навсегда</option>
+                    </select>
+                    <button class="chip chip-accent" type="submit">Выдать</button>
+                  </form>
+                </td>
+                <td>
+                  {% if s.active %}
+                    <form method="post" action="{{ url_for('admin_revoke', user_id=u.id, q=q) }}"
+                          data-confirm="Забрать подписку у {{ u.nick }}?"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                      <button class="chip chip-danger" type="submit">Забрать</button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted admin-empty">{{ 'Никого не нашли.' if q else 'Пользователей пока нет.' }}</p>
+    {% endif %}
+
+  {% elif tab == 'orders' %}
+    <nav class="segmented small" aria-label="Статус">
+      <a href="{{ url_for('admin_orders') }}" class="{{ 'on' if not status }}">Все</a>
+      {% for key, label in ORDER_STATUS.items() %}
+        <a href="{{ url_for('admin_orders', status=key) }}" class="{{ 'on' if status == key }}">{{ label }}</a>
+      {% endfor %}
+    </nav>
+
+    {% if orders %}
+      <div class="card admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>Заказ</th><th>Игрок</th><th>Сумма</th><th>Статус</th><th></th></tr></thead>
+          <tbody>
+            {% for o in orders %}
+              <tr>
+                <td>
+                  <div class="who">
+                    <img class="px" src="{{ tex(o.icon) }}" alt="">
+                    <span><b>{{ o.name }}</b><small>№{{ o.id }} · {{ o.created_at | date }}{% if o.promo %} · {{ o.promo }}{% endif %}</small></span>
+                  </div>
+                </td>
+                <td>{{ o.nick }}</td>
+                <td class="nowrap">{{ o.price | rub }}</td>
+                <td><span class="pill pill-{{ o.status }}">{{ ORDER_STATUS[o.status] }}</span></td>
+                <td>
+                  {% if o.status == 'pending' %}
+                    <div class="row-actions">
+                      <form method="post" action="{{ url_for('admin_order_action', order_id=o.id, action='confirm', status=status) }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                        <button class="chip chip-accent" type="submit">Подтвердить</button>
+                      </form>
+                      <form method="post" action="{{ url_for('admin_order_action', order_id=o.id, action='cancel', status=status) }}"
+                            data-confirm="Отменить заказ №{{ o.id }}?"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+                        <button class="chip chip-danger" type="submit">Отменить</button>
+                      </form>
+                    </div>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="muted admin-empty">Заказов нет.</p>
+    {% endif %}
+  {% endif %}
+</section>
+{% endblock %}

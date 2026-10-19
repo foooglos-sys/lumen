@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Не найдено{% endblock %}
+
+{% block content %}
+<section class="wrap narrow empty lost">
+  <img class="px" src="{{ tex('block/bedrock') }}" alt="">
+  <h1>404</h1>
+  <p class="muted">Докопались до бедрока — дальше ничего нет.</p>
+  <a class="btn" href="{{ url_for('index') }}">На главную</a>
+</section>
+{% endblock %}

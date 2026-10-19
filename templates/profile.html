@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}{{ g.user.nick }}{% endblock %}
+
+{% block content %}
+<section class="wrap profile">
+  <header class="card me">
+    <div class="me-banner" aria-hidden="true" style="background-image:url('{{ img('CABINET_IMAGE') }}')"></div>
+    <img class="px me-head" src="https://mc-heads.net/avatar/{{ g.user.nick }}/144" alt="">
+    <div class="me-info">
+      <h1>{{ g.user.nick }}</h1>
+      <p>{% if g.user.email %}{{ g.user.email }} · {% endif %}с нами с {{ g.user.created_at | date }}</p>
+    </div>
+    <span class="me-badge {{ 'is-on' if sub.active }}">{{ ('Навсегда' if sub.forever else 'Подписка') if sub.active else 'Без подписки' }}</span>
+    {% if role %}<a class="cta cta-light cta-sm" href="{{ url_for('admin') }}">Панель</a>{% endif %}
+    <form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="cta cta-ghost cta-sm" type="submit">Выйти</button>
+    </form>
+  </header>
+
+  <div class="profile-main">
+    {% with ok = get_flashed_messages(category_filter=['ok']) %}
+      {% for m in ok %}<p class="admin-ok">{{ m }}</p>{% endfor %}
+    {% endwith %}
+
+    <form class="card activate" method="post" action="{{ url_for('activate_key') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <div class="activate-text">
+        <h2>Активировать ключ</h2>
+        <p class="muted">Купили ключ на FunPay? Вставьте его сюда — подписка продлится сразу.</p>
+      </div>
+      <div class="activate-row">
+        <input name="code" required maxlength="40" placeholder="XXXXX-XXXXX-XXXXX-XXXXX" autocomplete="off"
+               spellcheck="false" autocapitalize="characters" class="upper">
+        <button class="cta cta-light cta-sm" type="submit">Активировать</button>
+      </div>
+    </form>
+
+    <div class="card license {{ 'is-active' if sub.active }}">
+      <div class="license-top">
+        <div>
+          <small class="muted">Подписка</small>
+          {% if sub.active %}
+            <h2>{{ 'Навсегда' if sub.forever else 'Осталось ' ~ (sub.days | days) }}</h2>
+            {% if not sub.forever %}<p class="muted">до {{ sub.until }}</p>{% endif %}
+          {% elif sub.expired %}
+            <h2>Закончилась {{ sub.until }}</h2>
+          {% else %}
+            <h2>Нет подписки</h2>
+          {% endif %}
+        </div>
+        {% if sub.active %}
+          <a class="cta cta-light cta-sm" href="{{ url_for('download') }}">Скачать лаунчер</a>
+        {% else %}
+          <a class="cta cta-light cta-sm" href="{{ url_for('shop') }}">{{ 'Продлить' if sub.expired else 'Купить подписку' }}</a>
+        {% endif %}
+      </div>
+      {% if sub.active and not sub.forever %}
+        <div class="meter"><span style="width: {{ sub.pct }}%"></span></div>
+      {% endif %}
+
+      {% if g.user.license_key %}
+        <div class="license-rows">
+          <div class="license-row">
+            <span class="muted">HWID</span>
+            <code>{{ (g.user.hwid[:6] ~ '…' ~ g.user.hwid[-4:]) if g.user.hwid else 'не привязан' }}</code>
+            <div class="license-actions">
+              {% if g.user.hwid %}
+                {% if reset_at %}
+                  <span class="hint">сброс с {{ reset_at }} · <a href="{{ url_for('checkout', slug='hwid-reset') }}">сейчас за 99 ₽</a></span>
+                {% else %}
+                  <form method="post" action="{{ url_for('hwid_reset') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}"><button class="chip" type="submit">Сбросить</button></form>
+                {% endif %}
+              {% else %}
+                <span class="hint">привяжется при первом запуске</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="stats">
+      <div class="stat"><small>Потрачено</small><b>{{ spent | rub }}</b></div>
+      <div class="stat"><small>Заказов</small><b>{{ orders | length }}</b></div>
+      <div class="stat"><small>Открытых тикетов</small><b>{{ stats.active or 0 }}</b></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>Покупки</h2>
+        <a class="more" href="{{ url_for('shop') }}">В магазин →</a>
+      </div>
+      {% if orders %}
+        <ul class="orders">
+          {% for o in orders %}
+            <li>
+              <a href="{{ url_for('order_view', order_id=o.id) }}">
+                <img class="px" src="{{ tex(o.icon) }}" alt="">
+                <span class="order-main"><b>{{ o.name }}</b><small>№{{ o.id }} · {{ o.created_at | date }}</small></span>
+                <span class="order-price">{{ o.price | rub }}</span>
+                <span class="pill pill-{{ o.status }}">{{ ORDER_STATUS[o.status] }}</span>
+              </a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% elif not activations %}
+        <p class="muted">Покупок пока нет.</p>
+      {% endif %}
+      {% if activations %}
+        <ul class="orders activations">
+          {% for a in activations %}
+            <li>
+              <span class="act-row">
+                <img class="px" src="{{ tex('item/name_tag') }}" alt="">
+                <span class="order-main"><b>Ключ · {{ 'навсегда' if a.days == 0 else a.days | days }}</b><small>{{ a.code[:5] }}-••••• · {{ a.activated_at | date }}</small></span>
+                <span class="pill pill-paid">Активирован</span>
+              </span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <form class="card form" method="post" action="{{ url_for('change_password') }}"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <div class="card-head"><h2>Смена пароля</h2></div>
+      <div class="form-row">
+        <label class="field"><span>Текущий</span><input type="password" name="old" required autocomplete="current-password"></label>
+        <label class="field"><span>Новый</span><input type="password" name="new" required minlength="6" autocomplete="new-password"></label>
+      </div>
+      <button class="cta cta-ghost cta-sm" type="submit">Сохранить</button>
+    </form>
+  </div>
+</section>
+{% endblock %}

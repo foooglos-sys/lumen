@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{{ cfg.CLIENT_NAME }}{% endblock %} — {{ cfg.CLIENT_NAME }} Client</title>
+  <meta name="theme-color" content="#101012">
+  <script nonce="{{ csp_nonce }}">document.documentElement.classList.add('js')</script>
+  <link rel="icon" href="{{ tex('item/nether_star') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="{% block body_class %}{% endblock %}" oncontextmenu="return false;">
+
+{# ---------- шапка ---------- #}
+{% set ep = request.endpoint or '' %}
+<header class="island" id="island">
+  <div class="island-shell">
+    <div class="bar">
+      <div class="bar-left">
+        <a class="logo" href="{{ url_for('index') }}">{{ cfg.CLIENT_NAME }}</a>
+      </div>
+
+      <nav class="bar-nav" aria-label="Навигация">
+        <a href="{{ url_for('index') }}#features" class="{{ 'on' if ep == 'index' }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.5 8 12 13l9.5-5z"/><path d="m2.5 12.5 9.5 5 9.5-5"/><path d="m2.5 17 9.5 5 9.5-5" opacity=".5"/></svg>
+          Возможности
+        </a>
+        <a href="{{ url_for('shop') }}" class="{{ 'on' if ep in ('shop', 'checkout', 'order_view') }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 13H6z" class="fill"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>
+          Покупка
+        </a>
+        <a href="{{ url_for('tickets') }}" class="{{ 'on' if ep.startswith('ticket') }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="m5.6 5.6 3.9 3.9m5 5 3.9 3.9m0-12.8-3.9 3.9m-5 5-3.9 3.9"/></svg>
+          Тикеты{% if activity %}<span class="nav-badge" title="{{ activity.title }}"></span>{% endif %}
+        </a>
+        <a href="{{ cfg.DISCORD_URL }}" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 5.5a15 15 0 0 1 7 0c1.7 2.3 2.8 5 3 8.5a12 12 0 0 1-4 2.5l-1-1.8m-5 1.8-1-1.8M8.5 5.5c-1.7 2.3-2.8 5-3 8.5a12 12 0 0 0 4 2.5"/><path d="M8 13.8c2.6 1.2 5.4 1.2 8 0"/><circle cx="9.7" cy="10.8" r=".9" class="fill"/><circle cx="14.3" cy="10.8" r=".9" class="fill"/></svg>
+          Сообщество
+        </a>
+        <span class="bar-ink" aria-hidden="true"></span>
+      </nav>
+
+      <div class="bar-right">
+        {% if g.user %}
+          <a class="cab" href="{{ url_for('profile') }}">
+            <img class="px" src="https://mc-heads.net/avatar/{{ g.user.nick }}/32" alt="">
+            <span>Кабинет</span>
+          </a>
+        {% else %}
+          <a class="cab" href="{{ url_for('login') }}">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5 3.5 7v10l8.5 4.5 8.5-4.5V7z" class="fill"/><path d="m3.5 7 8.5 4.5L20.5 7M12 11.5v10" class="cut"/></svg>
+            <span>Кабинет</span>
+          </a>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</header>
+
+<main>
+{% with errors = get_flashed_messages(category_filter=['err']) %}
+  {% if errors %}
+    <div class="wrap flashes">{% for m in errors %}<p class="flash">{{ m }}</p>{% endfor %}</div>
+  {% endif %}
+{% endwith %}
+{% block content %}{% endblock %}
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-in">
+    <div>
+      <div class="logo"><img class="px" src="{{ tex('item/nether_star') }}" alt=""><span>{{ cfg.CLIENT_NAME }}</span></div>
+      <p class="muted">v{{ cfg.CLIENT_VERSION }} · Java {{ cfg.MC_VERSIONS }}</p>
+    </div>
+    <div class="footer-links">
+      <a href="{{ cfg.DISCORD_URL }}" target="_blank" rel="noopener">Discord</a>
+      <a href="{{ cfg.TELEGRAM_URL }}" target="_blank" rel="noopener">Telegram</a>
+      <a href="{{ url_for('ticket_new') }}">Поддержка</a>
+    </div>
+    <p class="footer-legal">Не является официальным продуктом Minecraft. Не одобрено и не связано с Mojang или Microsoft.</p>
+  </div>
+</footer>
+
+{# ---------- таббар на телефоне ---------- #}
+<nav class="tabbar">
+  <a href="{{ url_for('index') }}" class="{{ 'on' if ep == 'index' }}"><img class="px" src="{{ tex('item/compass_00') }}" alt="">Главная</a>
+  <a href="{{ url_for('shop') }}" class="{{ 'on' if ep in ('shop', 'checkout', 'order_view') }}"><img class="px" src="{{ tex('item/emerald') }}" alt="">Покупка</a>
+  <a href="{{ url_for('tickets') }}" class="{{ 'on' if ep.startswith('ticket') }}"><img class="px" src="{{ tex('item/writable_book') }}" alt="">Тикеты</a>
+  {% if g.user %}
+    <a href="{{ url_for('profile') }}" class="{{ 'on' if ep == 'profile' }}"><img class="px" src="https://mc-heads.net/avatar/{{ g.user.nick }}/32" alt="">Профиль</a>
+  {% else %}
+    <a href="{{ url_for('login') }}" class="{{ 'on' if ep in ('login', 'register') }}"><img class="px" src="{{ tex('item/name_tag') }}" alt="">Войти</a>
+  {% endif %}
+</nav>
+
+<script nonce="{{ csp_nonce }}" src="{{ url_for('static', filename='island.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

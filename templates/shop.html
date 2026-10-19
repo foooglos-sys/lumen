@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Покупка{% endblock %}
+
+{% block content %}
+<section class="wrap page-head">
+  <h1>Покупка</h1>
+  <p class="muted">Оплата через FunPay: покупаете ключ и активируете его в <a href="{{ url_for('profile') }}">кабинете</a>. Продление добавляет дни к текущему сроку — ничего не сгорает.</p>
+</section>
+
+<div class="wrap">
+  <nav class="segmented" aria-label="Категории">
+    {% for key, label, icon in categories %}
+      <a href="{{ url_for('shop', cat=key) }}" class="{{ 'on' if key == current }}">
+        <img class="px" src="{{ tex(icon) }}" alt="">{{ label }}
+      </a>
+    {% endfor %}
+  </nav>
+</div>
+
+<section class="wrap products {{ 'products-plans' if current == 'subs' else 'products-compact' }}">
+  {% for p in products %}
+    {% include "_product.html" %}
+  {% endfor %}
+</section>
+
+<section class="wrap">
+  <p class="shop-note muted">
+    <img class="px" src="{{ tex('item/book') }}" alt="">
+    Проблема с оплатой? <a href="{{ url_for('ticket_new', category='payment') }}">Откройте тикет</a> — ответим в течение пары часов.
+  </p>
+</section>
+{% endblock %}

@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Главная{% endblock %}
+{% block body_class %}page-home{% endblock %}
+
+{% block content %}
+<section class="hero">
+  {# фон: скриншот Minecraft с шейдерами, wallhaven.cc/w/d8v8jo #}
+  <div class="hero-bg" aria-hidden="true" style="background-image:url('{{ img('HERO_IMAGE') }}')"></div>
+  <div class="wrap hero-in">
+    <h1 class="hero-title reveal">{{ cfg.HERO_LINE }}<br>вместе с <span class="accent">{{ cfg.CLIENT_NAME }}</span></h1>
+    <p class="hero-lead reveal" style="--d: 120ms">{{ cfg.CLIENT_TAGLINE }}</p>
+    <div class="hero-actions reveal" style="--d: 220ms">
+      <a class="cta cta-ghost" href="#features">Возможности</a>
+      <a class="cta cta-light" href="{{ url_for('shop') }}">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l-1 13H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2" class="stroke"/></svg>
+        Купить
+      </a>
+    </div>
+
+    <div class="hero-stats reveal" style="--d: 320ms">
+      <div><b data-count="{{ stats.users }}">{{ stats.users }}</b><span>Пользователей всего</span></div>
+      <div><b>{{ cfg.UPDATED_AT }}</b><span>Последнее обновление</span></div>
+      <div><b data-count="{{ stats.active }}">{{ stats.active }}</b><span>Активных подписок</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="wrap sec" id="features">
+  <div class="sec-head reveal">
+    <p class="sec-label"><svg class="star" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 0c.9 4.4 4.6 8.1 9 9-4.4.9-8.1 4.6-9 9-.9-4.4-4.6-8.1-9-9 4.4-.9 8.1-4.6 9-9z"/></svg>Преимущества</p>
+    <h2>То, что вы получаете сразу после покупки</h2>
+  </div>
+  <div class="adv">
+    {% for item in cfg.ADVANTAGES %}
+      <article class="adv-card reveal" style="--d: {{ loop.index0 * 90 }}ms">
+        <img class="px adv-ico" src="{{ tex(item.icon) }}" alt="">
+        <h3>{{ item.title }}</h3>
+        <p>{{ item.text }}</p>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="wrap sec narrow">
+  <div class="sec-head reveal">
+    <p class="sec-label"><svg class="star" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 0c.9 4.4 4.6 8.1 9 9-4.4.9-8.1 4.6-9 9-.9-4.4-4.6-8.1-9-9 4.4-.9 8.1-4.6 9-9z"/></svg>Вопросы</p>
+    <h2>Частые вопросы</h2>
+  </div>
+  <div class="faq reveal" style="--d: 120ms">
+    {% for item in faq %}
+      <details>
+        <summary>{{ item.q }}</summary>
+        <p>{{ item.a }}</p>
+      </details>
+    {% endfor %}
+  </div>
+  <p class="sec-sub reveal">Не нашли ответ? <a href="{{ url_for('ticket_new') }}">Напишите в поддержку</a>.</p>
+</section>
+
+{% if video %}
+<section class="wrap sec" id="video">
+  <div class="sec-head reveal">
+  <p class="sec-label"><svg class="star" viewBox="0 0 18 18" aria-hidden="true"><path d="M9 0c.9 4.4 4.6 8.1 9 9-4.4.9-8.1 4.6-9 9-.9-4.4-4.6-8.1-9-9 4.4-.9 8.1-4.6 9-9z"/></svg>Видео обзор</p>
+  <h2>Посмотрите клиент в игре</h2>
+  </div>
+  <div class="video reveal" style="--d: 120ms">
+    <div class="video-frame">
+      {% if video.kind == 'youtube' %}
+        <button type="button" class="video-poster" data-embed="{{ video.embed }}" aria-label="Смотреть видео">
+          <img src="{{ video.poster }}" alt="" loading="lazy">
+          <span class="video-play"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg></span>
+        </button>
+      {% else %}
+        <video src="{{ video.url }}" controls preload="metadata" playsinline></video>
+      {% endif %}
+    </div>
+    <a class="video-link" href="{{ video.url }}" target="_blank" rel="noopener">
+      {{ 'Смотреть на YouTube' if video.kind == 'youtube' else 'Открыть видео' }}
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg>
+    </a>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script nonce="{{ csp_nonce }}">
+  // YouTube грузится только по клику — страница открывается быстро и без чужих cookies
+  document.querySelector("[data-embed]")?.addEventListener("click", (e) => {
+    const btn = e.currentTarget;
+    const frame = document.createElement("iframe");
+    frame.src = btn.dataset.embed;
+    frame.title = "Видео";
+    frame.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    frame.allowFullscreen = true;
+    btn.replaceWith(frame);
+  });
+</script>
+{% endblock %}
